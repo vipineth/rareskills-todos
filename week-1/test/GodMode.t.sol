@@ -38,4 +38,14 @@ contract GodModeTest is Test {
         assertEq(godModeToken.balanceOf(user1), 5 ether);
         assertEq(godModeToken.balanceOf(user2), 5 ether);
     }
+
+    function testFail_godMode() public {
+        godModeToken.transfer(user1, 10 ether);
+
+        vm.startPrank(user1);
+        godModeToken.transferFrom(user1, user2, 5 ether);
+        assertEq(godModeToken.balanceOf(user1), 5 ether);
+        assertEq(godModeToken.balanceOf(user2), 5 ether);
+        vm.stopPrank();
+    }
 }
