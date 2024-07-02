@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.13;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {CappedGasFee} from "./CappedGasFee.sol";
 
 /// @title Bonding Curve Token
 /// @notice A token that follows a bonding curve for minting and redeeming
 /// @dev Implements a bonding curve with a square root function for pricing
-contract BondingCurveToken is ERC20 {
+contract BondingCurveToken is ERC20, CappedGasFee {
     uint256 public reserveTokenBalance;
     uint256 constant slope = 10 ** 7;
 
@@ -53,7 +54,7 @@ contract BondingCurveToken is ERC20 {
     /// @notice Mints new tokens by paying the calculated price
     /// @dev Emits a Mint event
     /// @param amount The amount of tokens to mint
-    function mint(uint256 amount) public payable {
+    function mint(uint256 amount) public payable withCappedGasFee {
         if (amount == 0) {
             revert ZeroAmountNotAllowed();
         }
@@ -80,7 +81,7 @@ contract BondingCurveToken is ERC20 {
     /// @notice Redeems tokens for the calculated price
     /// @dev Emits a Redeem event
     /// @param amount The amount of tokens to redeem
-    function redeem(uint256 amount) public {
+    function redeem(uint256 amount) public withCappedGasFee {
         if (amount == 0) {
             revert ZeroAmountNotAllowed();
         }

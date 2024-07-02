@@ -3,9 +3,11 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {BondingCurveToken} from "../src/BondingCurveToken.sol";
+import {CappedGasFee} from "../src/CappedGasFee.sol";
 
 contract BondingCurveTokenTest is Test {
     BondingCurveToken public bondingCurveToken;
+    CappedGasFee public cappedGasFee;
     address deployer;
     address user1;
     address user2;
@@ -15,6 +17,7 @@ contract BondingCurveTokenTest is Test {
         user1 = vm.addr(1);
         user2 = vm.addr(2);
         bondingCurveToken = new BondingCurveToken();
+        cappedGasFee = new CappedGasFee();
     }
 
     function testMint() public {
@@ -63,6 +66,17 @@ contract BondingCurveTokenTest is Test {
         vm.expectRevert(BondingCurveToken.ZeroAmountNotAllowed.selector);
         vm.startPrank(user1);
         bondingCurveToken.redeem(0);
+        vm.stopPrank();
+    }
+
+    function testCappedGasFee() public {
+        uint256 mintAmount = 10 ether;
+        uint256 mintPrice = bondingCurveToken.priceToMint(mintAmount);
+        vm.deal(user1, mintPrice);
+        vm.startPrank(user1);
+        vm.txGasPrice(32000000000); // 32 gwai
+        vm.expectRevert(CappedGasFee.MaxGasFeeExceeded.selector);
+        bondingCurveToken.mint{value: mintPrice}(mintAmount);
         vm.stopPrank();
     }
 }
