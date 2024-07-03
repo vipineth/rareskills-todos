@@ -79,4 +79,40 @@ contract BondingCurveTokenTest is Test {
         bondingCurveToken.mint{value: mintPrice}(mintAmount);
         vm.stopPrank();
     }
+
+    function testMintWithZeroAmount() public {
+        vm.expectRevert(BondingCurveToken.ZeroAmountNotAllowed.selector);
+        bondingCurveToken.mint{value: 0}(0);
+    }
+
+    function testRedeemWithInsufficientBalance() public {
+        uint256 mintAmount = 2 ether;
+        uint256 mintPrice = bondingCurveToken.priceToMint(mintAmount);
+        vm.deal(user1, mintPrice);
+        vm.startPrank(user1);
+        bondingCurveToken.mint{value: mintPrice}(mintAmount);
+        vm.expectRevert(BondingCurveToken.InsufficientBalance.selector);
+        bondingCurveToken.redeem(3 ether);
+        vm.stopPrank();
+    }
+
+    function testMintWithExcessEther() public {
+        uint256 mintAmount = 2 ether;
+        uint256 mintPrice = bondingCurveToken.priceToMint(mintAmount);
+        uint256 excessEther = 1 ether;
+        vm.deal(user1, mintPrice + excessEther);
+        vm.startPrank(user1);
+        bondingCurveToken.mint{value: mintPrice + excessEther}(mintAmount);
+        assertEq(
+            bondingCurveToken.balanceOf(user1),
+            mintAmount,
+            "User1 should have the minted amount of tokens"
+        );
+        assertEq(
+            bondingCurveToken.reserveTokenBalance(),
+            mintPrice,
+            "Reserve balance should match the mint price"
+        );
+        vm.stopPrank();
+    }
 }

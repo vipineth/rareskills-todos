@@ -18,6 +18,7 @@ contract BondingCurveToken is ERC20, CappedGasFee {
     error ZeroAmountNotAllowed();
     error FailedToSendEther();
     error InsufficientAmount();
+    error InsufficientBalance();
 
     constructor() ERC20("BondingCurveToken", "BCT") {}
 
@@ -84,6 +85,12 @@ contract BondingCurveToken is ERC20, CappedGasFee {
     function redeem(uint256 amount) public withCappedGasFee {
         if (amount == 0) {
             revert ZeroAmountNotAllowed();
+        }
+
+        uint256 userBalance = balanceOf(msg.sender);
+
+        if (userBalance < amount) {
+            revert InsufficientBalance();
         }
 
         uint256 returnAmount = priceToRedeem(amount);
