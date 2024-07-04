@@ -11,7 +11,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract Escrow {
     using SafeERC20 for IERC20;
 
-    uint256 constant ESCROW_TIME = 3 days;
+    uint256 public constant ESCROW_TIME = 3 days;
     /// @notice The counter for the escrow IDs
     uint256 escrowCounter;
 
@@ -67,7 +67,7 @@ contract Escrow {
         address _token,
         address _recipient,
         uint256 _amount
-    ) external {
+    ) external returns (uint256 escrowId) {
         if (_recipient == address(0)) {
             revert InvalidAddress();
         }
@@ -94,7 +94,7 @@ contract Escrow {
         senderEscrows[msg.sender].push(escrowCounter);
         recipientEscrows[_recipient].push(escrowCounter);
 
-        escrowCounter = escrowCounter + 1;
+        escrowCounter++;
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -106,6 +106,8 @@ contract Escrow {
             _amount,
             releaseTime
         );
+
+        return escrowCounter - 1;
     }
 
     /// @notice Withdraws tokens from an escrow
