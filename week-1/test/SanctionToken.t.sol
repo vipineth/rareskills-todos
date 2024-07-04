@@ -36,10 +36,7 @@ contract SanctionTokenTest is Test {
         sanctionToken.ban(user1);
 
         vm.startPrank(user1);
-        bytes memory encodedError = abi.encodeWithSignature(
-            "SenderBanned(address)",
-            user1
-        );
+        bytes memory encodedError = abi.encodeWithSignature("SenderBanned(address)", user1);
         vm.expectRevert(encodedError);
         sanctionToken.transfer(user2, 2 ether);
         vm.stopPrank();

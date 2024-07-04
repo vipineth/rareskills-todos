@@ -41,11 +41,7 @@ contract SanctionToken is ERC20, Ownable {
     /// @param from The sender's address.
     /// @param to The recipient's address.
     /// @param value The amount of tokens being transferred.
-    function _update(
-        address from,
-        address to,
-        uint256 value
-    ) internal virtual override {
+    function _update(address from, address to, uint256 value) internal virtual override {
         if (blocklist[from]) {
             revert SenderBanned(from);
         }

@@ -16,11 +16,7 @@ contract GodMode is ERC20, Ownable {
     /// @param from Address from which tokens are deducted
     /// @param to Address to which tokens are sent
     /// @param amount Number of tokens to transfer
-    function _spendAllowance(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+    function _spendAllowance(address from, address to, uint256 amount) internal override {
         if (msg.sender == owner()) {
             return;
         }

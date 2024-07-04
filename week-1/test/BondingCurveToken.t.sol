@@ -26,15 +26,9 @@ contract BondingCurveTokenTest is Test {
         vm.deal(deployer, expectedPrice);
         bondingCurveToken.mint{value: expectedPrice}(mintAmount);
         assertEq(
-            bondingCurveToken.balanceOf(deployer),
-            4.5 ether,
-            "Deployer should have 2 ether of tokens after minting"
+            bondingCurveToken.balanceOf(deployer), 4.5 ether, "Deployer should have 2 ether of tokens after minting"
         );
-        assertEq(
-            bondingCurveToken.reserveTokenBalance(),
-            expectedPrice,
-            "Reserve balance should match the mint price"
-        );
+        assertEq(bondingCurveToken.reserveTokenBalance(), expectedPrice, "Reserve balance should match the mint price");
     }
 
     function testRedeem() public {
@@ -45,11 +39,7 @@ contract BondingCurveTokenTest is Test {
         bondingCurveToken.mint{value: mintPrice}(mintAmount);
         uint256 redeemAmount = 2 ether;
         bondingCurveToken.redeem(redeemAmount);
-        assertEq(
-            bondingCurveToken.balanceOf(user1),
-            2.5 ether,
-            "User1 should have 2.5 ether of tokens after redeeming"
-        );
+        assertEq(bondingCurveToken.balanceOf(user1), 2.5 ether, "User1 should have 2.5 ether of tokens after redeeming");
         vm.stopPrank();
     }
 
@@ -103,16 +93,8 @@ contract BondingCurveTokenTest is Test {
         vm.deal(user1, mintPrice + excessEther);
         vm.startPrank(user1);
         bondingCurveToken.mint{value: mintPrice + excessEther}(mintAmount);
-        assertEq(
-            bondingCurveToken.balanceOf(user1),
-            mintAmount,
-            "User1 should have the minted amount of tokens"
-        );
-        assertEq(
-            bondingCurveToken.reserveTokenBalance(),
-            mintPrice,
-            "Reserve balance should match the mint price"
-        );
+        assertEq(bondingCurveToken.balanceOf(user1), mintAmount, "User1 should have the minted amount of tokens");
+        assertEq(bondingCurveToken.reserveTokenBalance(), mintPrice, "Reserve balance should match the mint price");
         vm.stopPrank();
     }
 }

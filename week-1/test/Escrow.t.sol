@@ -33,32 +33,17 @@ contract EscrowTest is Test {
         uint256 expectedEscrowId = 0;
         uint256 expectedReleaseTime = block.timestamp + escrowTime;
 
-        uint256 escrowId = createEscrowHelper(
-            user1,
-            mintAmount,
-            escrowAmount,
-            user2
-        );
+        uint256 escrowId = createEscrowHelper(user1, mintAmount, escrowAmount, user2);
 
-        (
-            address token,
-            address sender,
-            address recipient,
-            uint256 amount,
-            uint256 releaseTime,
-            bool isReleased
-        ) = escrow.escrows(expectedEscrowId);
+        (address token, address sender, address recipient, uint256 amount, uint256 releaseTime, bool isReleased) =
+            escrow.escrows(expectedEscrowId);
 
         assertEq(escrowId, expectedEscrowId, "Escrow ID should be 0");
         assertEq(token, address(sampleToken), "Token address should match");
         assertEq(sender, user1, "Sender should be user1");
         assertEq(recipient, user2, "Recipient should be user2");
         assertEq(amount, escrowAmount, "Amount should be 100");
-        assertEq(
-            releaseTime,
-            expectedReleaseTime,
-            "Release time should be current block timestamp + 3 days"
-        );
+        assertEq(releaseTime, expectedReleaseTime, "Release time should be current block timestamp + 3 days");
         assertEq(isReleased, false, "isReleased should be false");
 
         vm.stopPrank();
@@ -69,12 +54,7 @@ contract EscrowTest is Test {
         uint256 escrowAmount = 50;
 
         vm.startPrank(user1);
-        uint256 escrowId = createEscrowHelper(
-            user1,
-            mintAmount,
-            escrowAmount,
-            user2
-        );
+        uint256 escrowId = createEscrowHelper(user1, mintAmount, escrowAmount, user2);
         vm.stopPrank();
 
         vm.startPrank(user2);
@@ -118,12 +98,7 @@ contract EscrowTest is Test {
         uint256 escrowAmount = 50;
 
         vm.startPrank(user1);
-        uint256 escrowId = createEscrowHelper(
-            user1,
-            mintAmount,
-            escrowAmount,
-            user2
-        );
+        uint256 escrowId = createEscrowHelper(user1, mintAmount, escrowAmount, user2);
         vm.stopPrank();
 
         vm.startPrank(user2);
@@ -138,12 +113,7 @@ contract EscrowTest is Test {
         uint256 escrowAmount = 50;
 
         vm.startPrank(user1);
-        uint256 escrowId = createEscrowHelper(
-            user1,
-            mintAmount,
-            escrowAmount,
-            user2
-        );
+        uint256 escrowId = createEscrowHelper(user1, mintAmount, escrowAmount, user2);
         vm.stopPrank();
 
         vm.startPrank(user1);
@@ -154,16 +124,13 @@ contract EscrowTest is Test {
         vm.stopPrank();
     }
 
-    function createEscrowHelper(
-        address sender,
-        uint256 mintAmount,
-        uint256 escrowAmount,
-        address recipient
-    ) internal returns (uint256 escrowId) {
+    function createEscrowHelper(address sender, uint256 mintAmount, uint256 escrowAmount, address recipient)
+        internal
+        returns (uint256 escrowId)
+    {
         sampleToken.mint(sender, mintAmount);
         IERC20(sampleToken).approve(address(escrow), escrowAmount);
 
-        return
-            escrow.createEscrow(address(sampleToken), recipient, escrowAmount);
+        return escrow.createEscrow(address(sampleToken), recipient, escrowAmount);
     }
 }

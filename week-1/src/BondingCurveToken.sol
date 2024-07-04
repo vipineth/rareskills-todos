@@ -72,7 +72,7 @@ contract BondingCurveToken is ERC20, CappedGasFee {
         uint256 leftover = msg.value - price;
 
         if (leftover > 0) {
-            (bool sent, ) = msg.sender.call{value: leftover}("");
+            (bool sent,) = msg.sender.call{value: leftover}("");
             if (!sent) {
                 revert FailedToSendEther();
             }
@@ -99,7 +99,7 @@ contract BondingCurveToken is ERC20, CappedGasFee {
             reserveTokenBalance -= returnAmount;
             _burn(msg.sender, amount);
             emit Redeem(msg.sender, amount);
-            (bool sent, ) = msg.sender.call{value: returnAmount}("");
+            (bool sent,) = msg.sender.call{value: returnAmount}("");
             if (!sent) {
                 revert FailedToSendEther();
             }

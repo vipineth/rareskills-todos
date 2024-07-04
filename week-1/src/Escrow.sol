@@ -33,12 +33,7 @@ contract Escrow {
         uint256 releaseTime
     );
 
-    event Withdrawn(
-        uint256 indexed escrowId,
-        address indexed sender,
-        address indexed recipient,
-        uint256 amount
-    );
+    event Withdrawn(uint256 indexed escrowId, address indexed sender, address indexed recipient, uint256 amount);
 
     error EscrowTimeNotPassed();
     error EscrowAlreadyReleased();
@@ -63,11 +58,7 @@ contract Escrow {
     /// @param _token The address of the ERC20 token
     /// @param _recipient The address of the recipient
     /// @param _amount The amount of tokens to be held in escrow
-    function createEscrow(
-        address _token,
-        address _recipient,
-        uint256 _amount
-    ) external returns (uint256 escrowId) {
+    function createEscrow(address _token, address _recipient, uint256 _amount) external returns (uint256 escrowId) {
         if (_recipient == address(0)) {
             revert InvalidAddress();
         }
@@ -98,14 +89,7 @@ contract Escrow {
 
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit EscrowCreated(
-            escrowCounter - 1,
-            _token,
-            msg.sender,
-            _recipient,
-            _amount,
-            releaseTime
-        );
+        emit EscrowCreated(escrowCounter - 1, _token, msg.sender, _recipient, _amount, releaseTime);
 
         return escrowCounter - 1;
     }
@@ -136,11 +120,6 @@ contract Escrow {
 
         IERC20(escrow.token).safeTransfer(escrow.recipient, escrow.amount);
 
-        emit Withdrawn(
-            _escrowId,
-            escrow.sender,
-            escrow.recipient,
-            escrow.amount
-        );
+        emit Withdrawn(_escrowId, escrow.sender, escrow.recipient, escrow.amount);
     }
 }
