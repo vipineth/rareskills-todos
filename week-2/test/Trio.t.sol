@@ -11,6 +11,7 @@ contract TrioTest is Test {
     Trio public trio;
     NFTStaking public nftStaking;
     RewardToken public rewardToken;
+
     bytes32 public merkleRoot;
 
     address internal deployer;
@@ -81,11 +82,50 @@ contract TrioTest is Test {
         vm.stopPrank();
     }
 
+    function test_MintWithDiscount_InvalidUser() public {
+        bytes32[] memory proofs = merkleTree.getProof(leaves, 1);
+        vm.startPrank(user5);
+        vm.expectRevert(Trio.InvalidProof.selector);
+        trio.mintWithDiscount{value: 0.007 ether}(proofs, 1);
+        vm.stopPrank();
+    }
+
+    function test_MintWithDiscount_MultipleMint() public {
+        bytes32[] memory proofs = merkleTree.getProof(leaves, 1);
+        vm.startPrank(user2);
+        trio.mintWithDiscount{value: 0.007 ether}(proofs, 1);
+        vm.expectRevert(Trio.AlreadyMintedWithDiscountPrice.selector);
+        trio.mintWithDiscount{value: 0.007 ether}(proofs, 1);
+        vm.stopPrank();
+    }
+
     function test_MintWithDiscountInsufficientBalance() public {
         bytes32[] memory proofs = merkleTree.getProof(leaves, 1);
         vm.startPrank(user2);
         vm.expectRevert(Trio.InsufficientBalance.selector);
         trio.mintWithDiscount{value: 0.005 ether}(proofs, 1);
+        vm.stopPrank();
+    }
+
+    function test_StakingDeposit() public {
+        uint256 tokenId = 1;
+        uint256 mintPrice = trio.MINT_PRICE();
+        vm.startPrank(user1);
+        trio.mint{value: mintPrice}();
+        trio.safeTransferFrom(user1, address(nftStaking), tokenId);
+        (address depositor, ) = nftStaking.deposits(tokenId);
+        assertEq(depositor, user1);
+        vm.stopPrank();
+    }
+
+    function test_StakingWithdraw() public {
+        uint256 tokenId = 1;
+        vm.startPrank(user1);
+        trio.mint{value: trio.MINT_PRICE()}();
+        trio.safeTransferFrom(user1, address(nftStaking), tokenId);
+        nftStaking.withdrawNFT(tokenId);
+        (address depositor, ) = nftStaking.deposits(tokenId);
+        assertEq(depositor, address(0));
         vm.stopPrank();
     }
 }

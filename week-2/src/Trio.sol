@@ -50,6 +50,9 @@ contract Trio is ERC721, ERC2981, Ownable {
         uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) /
             100;
 
+        if (!_verifyProof(proofs, index)) {
+            revert InvalidProof();
+        }
         if (this.isNftClaimed(index)) {
             revert AlreadyMintedWithDiscountPrice();
         }
@@ -75,11 +78,12 @@ contract Trio is ERC721, ERC2981, Ownable {
         }
     }
 
-    function _verifyProof(bytes32[] memory proofs, uint256 index) private view {
+    function _verifyProof(
+        bytes32[] memory proofs,
+        uint256 index
+    ) private view returns (bool) {
         bytes32 leaf = keccak256(abi.encode(msg.sender, index));
-        if (!MerkleProof.verify(proofs, _merkleRoot, leaf)) {
-            revert InvalidProof();
-        }
+        return MerkleProof.verify(proofs, _merkleRoot, leaf);
     }
 
     function isNftClaimed(uint256 tokenId) external view returns (bool) {
