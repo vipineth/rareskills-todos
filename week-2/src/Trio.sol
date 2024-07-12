@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
+import {console} from "forge-std/Test.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
@@ -20,13 +21,14 @@ contract Trio is ERC721, ERC2981, Ownable {
     BitMaps.BitMap private _discountedAddresses;
 
     error NotEligibleForDiscount();
-    error AlreadyMinted();
+    error AlreadyMintedWithDiscountPrice();
     error MaxSupplyReached();
     error InsufficientBalance();
     error InvalidProof();
     error WithdrawFailed();
 
-    constructor() ERC721("Trio", "TRO") Ownable(msg.sender) {
+    constructor(bytes32 merkleRoot) ERC721("Trio", "TRO") Ownable(msg.sender) {
+        _merkleRoot = merkleRoot;
         _setDefaultRoyalty(msg.sender, ROYALTY_FEE);
     }
 
@@ -42,17 +44,14 @@ contract Trio is ERC721, ERC2981, Ownable {
     }
 
     function mintWithDiscount(
-        bytes32[] memory proof,
+        bytes32[] memory proofs,
         uint256 index
     ) public payable {
         uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) /
             100;
 
-        if (!_discountedAddresses.get(index)) {
-            revert NotEligibleForDiscount();
-        }
-        if (!_discountedAddresses.get(index)) {
-            revert AlreadyMinted();
+        if (this.isNftClaimed(index)) {
+            revert AlreadyMintedWithDiscountPrice();
         }
         if (msg.value < discountedPrice) {
             revert InsufficientBalance();
@@ -61,8 +60,8 @@ contract Trio is ERC721, ERC2981, Ownable {
             revert MaxSupplyReached();
         }
 
-        _verifyProof(proof, index);
-        _discountedAddresses.set(index);
+        _verifyProof(proofs, index);
+        _discountedAddresses.setTo(index, true);
 
         _currentSupply++;
 
@@ -76,11 +75,15 @@ contract Trio is ERC721, ERC2981, Ownable {
         }
     }
 
-    function _verifyProof(bytes32[] memory proof, uint256 index) private view {
+    function _verifyProof(bytes32[] memory proofs, uint256 index) private view {
         bytes32 leaf = keccak256(abi.encode(msg.sender, index));
-        if (!MerkleProof.verify(proof, _merkleRoot, leaf)) {
+        if (!MerkleProof.verify(proofs, _merkleRoot, leaf)) {
             revert InvalidProof();
         }
+    }
+
+    function isNftClaimed(uint256 tokenId) external view returns (bool) {
+        return _discountedAddresses.get(tokenId);
     }
 
     function supportsInterface(
