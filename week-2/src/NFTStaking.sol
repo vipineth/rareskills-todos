@@ -39,7 +39,9 @@ contract NFTStaking is IERC721Receiver {
     function handleReward(uint256 tokenId) internal {
         Deposit memory deposit = deposits[tokenId];
 
-        require(deposit.timestamp > 0, RewardDurationHasNotPassed());
+        if (deposit.timestamp == 0) {
+            revert RewardDurationHasNotPassed();
+        }
 
         uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) *
             REWARD_AMOUNT) / REWARD_DURATION;
@@ -52,7 +54,9 @@ contract NFTStaking is IERC721Receiver {
 
     function withdrawNFT(uint256 tokenId) external {
         Deposit memory deposit = deposits[tokenId];
-        require(deposit.depositor == msg.sender, OnlyDepositorCanWithdraw());
+        if (deposit.depositor != msg.sender) {
+            revert OnlyDepositorCanWithdraw();
+        }
         delete deposits[tokenId];
         nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
         emit NFTWithdrawn(tokenId, msg.sender);
@@ -77,10 +81,9 @@ contract NFTStaking is IERC721Receiver {
         uint256 tokenId,
         bytes calldata
     ) external returns (bytes4) {
-        require(
-            msg.sender == address(nftContract),
-            OnlyNFTContractCanDeposit()
-        );
+        if (msg.sender != address(nftContract)) {
+            revert OnlyNFTContractCanDeposit();
+        }
 
         deposits[tokenId] = Deposit({
             depositor: from,

@@ -8,19 +8,23 @@ import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step
 contract RewardToken is ERC20, Ownable2Step {
     IERC721 public nftContract;
 
-    error NotNFTContract();
     error OnlyNFTContractCanMint();
 
-    constructor(address _nft) ERC20("Reward Token", "RWT") Ownable(msg.sender) {
-        nftContract = IERC721(_nft);
+    constructor(
+        address nftAddress
+    ) ERC20("Reward Token", "RWT") Ownable(msg.sender) {
+        nftContract = IERC721(nftAddress);
     }
 
-    function setNFTContract(address _nft) external onlyOwner {
-        nftContract = IERC721(_nft);
+    function setNFTContract(address nftAddress) external onlyOwner {
+        nftContract = IERC721(nftAddress);
     }
 
     function mint(address to, uint256 amount) external {
-        require(msg.sender == address(nftContract), OnlyNFTContractCanMint());
+        if (msg.sender != address(nftContract)) {
+            revert OnlyNFTContractCanMint();
+        }
+
         _mint(to, amount);
     }
 }

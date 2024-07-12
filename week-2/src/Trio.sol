@@ -31,8 +31,12 @@ contract Trio is ERC721, ERC2981, Ownable {
     }
 
     function mint() public payable {
-        require(msg.value >= MINT_PRICE, InsufficientBalance());
-        require(_currentSupply < MAX_SUPPLY, MaxSupplyReached());
+        if (msg.value < MINT_PRICE) {
+            revert InsufficientBalance();
+        }
+        if (_currentSupply >= MAX_SUPPLY) {
+            revert MaxSupplyReached();
+        }
         _currentSupply++;
         _mint(msg.sender, _currentSupply);
     }
@@ -44,10 +48,18 @@ contract Trio is ERC721, ERC2981, Ownable {
         uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) /
             100;
 
-        require(_discountedAddresses.get(index), NotEligibleForDiscount());
-        require(!_discountedAddresses.get(index), AlreadyMinted());
-        require(msg.value >= discountedPrice, InsufficientBalance());
-        require(_currentSupply < MAX_SUPPLY, MaxSupplyReached());
+        if (!_discountedAddresses.get(index)) {
+            revert NotEligibleForDiscount();
+        }
+        if (!_discountedAddresses.get(index)) {
+            revert AlreadyMinted();
+        }
+        if (msg.value < discountedPrice) {
+            revert InsufficientBalance();
+        }
+        if (_currentSupply >= MAX_SUPPLY) {
+            revert MaxSupplyReached();
+        }
 
         _verifyProof(proof, index);
         _discountedAddresses.set(index);
@@ -59,12 +71,16 @@ contract Trio is ERC721, ERC2981, Ownable {
 
     function withdrawFunds(address to) public onlyOwner {
         (bool success, ) = payable(to).call{value: address(this).balance}("");
-        require(success, WithdrawFailed());
+        if (!success) {
+            revert WithdrawFailed();
+        }
     }
 
     function _verifyProof(bytes32[] memory proof, uint256 index) private view {
         bytes32 leaf = keccak256(abi.encode(msg.sender, index));
-        require(MerkleProof.verify(proof, _merkleRoot, leaf), InvalidProof());
+        if (!MerkleProof.verify(proof, _merkleRoot, leaf)) {
+            revert InvalidProof();
+        }
     }
 
     function supportsInterface(
