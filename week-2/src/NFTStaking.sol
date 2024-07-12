@@ -11,7 +11,7 @@ contract NFTStaking is IERC721Receiver {
 
     struct Deposit {
         address depositor;
-        uint256 depositedAt;
+        uint256 timestamp;
     }
 
     IERC721 public nftContract;
@@ -22,16 +22,9 @@ contract NFTStaking is IERC721Receiver {
     error OnlyDepositorCanWithdraw();
     error RewardDurationHasNotPassed();
 
-    event NFTStaked(
-        uint256 indexed tokenId,
-        address depositor,
-        uint256 depositedAt
-    );
-    event NFTWithdrawn(
-        uint256 indexed tokenId,
-        address depositor,
-        uint256 depositedAt
-    );
+    event NFTStaked(uint256 indexed tokenId, address depositor);
+    event NFTWithdrawn(uint256 indexed tokenId, address depositor);
+
     event RewardDistributed(
         uint256 indexed tokenId,
         address depositor,
@@ -44,14 +37,17 @@ contract NFTStaking is IERC721Receiver {
     }
 
     function handleReward(uint256 tokenId) internal {
-        uint256 daysPassed = _getDaysPassed(tokenId);
-
-        require(daysPassed > 0, RewardDurationHasNotPassed());
-
-        uint256 totalRewardAmount = REWARD_AMOUNT * daysPassed;
         Deposit memory deposit = deposits[tokenId];
-        rewardToken.mint(deposit.depositor, totalRewardAmount);
-        emit RewardDistributed(tokenId, deposit.depositor, totalRewardAmount);
+
+        require(deposit.timestamp > 0, RewardDurationHasNotPassed());
+
+        uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) *
+            REWARD_AMOUNT) / REWARD_DURATION;
+
+        deposit.timestamp = block.timestamp;
+        rewardToken.mint(deposit.depositor, rewardsAmount);
+
+        emit RewardDistributed(tokenId, deposit.depositor, rewardsAmount);
     }
 
     function withdrawNFT(uint256 tokenId) external {
@@ -59,30 +55,38 @@ contract NFTStaking is IERC721Receiver {
         require(deposit.depositor == msg.sender, OnlyDepositorCanWithdraw());
         delete deposits[tokenId];
         nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
-        emit NFTWithdrawn(tokenId, msg.sender, deposits[tokenId].depositedAt);
+        emit NFTWithdrawn(tokenId, msg.sender);
 
-        handleReward(tokenId);
-    }
-
-    function _getDaysPassed(uint256 tokenId) internal view returns (uint256) {
-        Deposit memory deposit = deposits[tokenId];
-        return (block.timestamp - deposit.depositedAt) / 1 days;
+        if (deposit.timestamp > 0) {
+            uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) *
+                REWARD_AMOUNT) / REWARD_DURATION;
+            if (rewardsAmount > 0) {
+                rewardToken.mint(deposit.depositor, rewardsAmount);
+                emit RewardDistributed(
+                    tokenId,
+                    deposit.depositor,
+                    rewardsAmount
+                );
+            }
+        }
     }
 
     function onERC721Received(
-        address operator,
+        address,
         address from,
         uint256 tokenId,
-        bytes calldata data
+        bytes calldata
     ) external returns (bytes4) {
         require(
             msg.sender == address(nftContract),
             OnlyNFTContractCanDeposit()
         );
+
         deposits[tokenId] = Deposit({
             depositor: from,
-            depositedAt: block.timestamp
+            timestamp: block.timestamp
         });
+
         return this.onERC721Received.selector;
     }
 }

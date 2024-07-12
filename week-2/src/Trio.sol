@@ -5,8 +5,9 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Trio is ERC721, ERC2981 {
+contract Trio is ERC721, ERC2981, Ownable {
     using BitMaps for BitMaps.BitMap;
 
     uint256 public constant MAX_SUPPLY = 1000;
@@ -23,8 +24,9 @@ contract Trio is ERC721, ERC2981 {
     error MaxSupplyReached();
     error InsufficientBalance();
     error InvalidProof();
+    error WithdrawFailed();
 
-    constructor() ERC721("Trio", "TRO") {
+    constructor() ERC721("Trio", "TRO") Ownable(msg.sender) {
         _setDefaultRoyalty(msg.sender, ROYALTY_FEE);
     }
 
@@ -53,6 +55,11 @@ contract Trio is ERC721, ERC2981 {
         _currentSupply++;
 
         _mint(msg.sender, _currentSupply);
+    }
+
+    function withdrawFunds(address to) public onlyOwner {
+        (bool success, ) = payable(to).call{value: address(this).balance}("");
+        require(success, WithdrawFailed());
     }
 
     function _verifyProof(bytes32[] memory proof, uint256 index) private view {
