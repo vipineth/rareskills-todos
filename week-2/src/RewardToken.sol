@@ -10,11 +10,7 @@ contract RewardToken is ERC20, Ownable2Step {
 
     error OnlyNFTContractCanMint();
 
-    constructor(
-        address nftAddress
-    ) ERC20("Reward Token", "RWT") Ownable(msg.sender) {
-        nftContract = IERC721(nftAddress);
-    }
+    constructor() ERC20("Reward Token", "RWT") Ownable(msg.sender) {}
 
     function setNFTContract(address nftAddress) external onlyOwner {
         nftContract = IERC721(nftAddress);

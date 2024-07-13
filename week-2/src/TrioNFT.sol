@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-import {console} from "forge-std/Test.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Trio is ERC721, ERC2981, Ownable {
+contract TrioNFT is ERC721, ERC2981, Ownable {
     using BitMaps for BitMaps.BitMap;
 
     uint256 public constant MAX_SUPPLY = 1000;
