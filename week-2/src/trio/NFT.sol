@@ -7,7 +7,7 @@ import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract TrioNFT is ERC721, ERC2981, Ownable {
+contract NFT is ERC721, ERC2981, Ownable {
     using BitMaps for BitMaps.BitMap;
 
     uint256 public constant MAX_SUPPLY = 1000;

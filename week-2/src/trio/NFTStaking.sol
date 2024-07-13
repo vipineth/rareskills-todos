@@ -5,7 +5,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {RewardToken} from "./RewardToken.sol";
 
-contract TrioNFTStaking is IERC721Receiver {
+contract NFTStaking is IERC721Receiver {
     uint256 public constant REWARD_DURATION = 24 hours;
     uint256 public constant REWARD_AMOUNT = 10 ether;
 
