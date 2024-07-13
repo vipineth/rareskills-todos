@@ -25,11 +25,7 @@ contract TrioNFTStaking is IERC721Receiver {
     event NFTStaked(uint256 indexed tokenId, address user);
     event NFTWithdrawn(uint256 indexed tokenId, address user);
 
-    event RewardDistributed(
-        uint256 indexed tokenId,
-        address depositor,
-        uint256 amount
-    );
+    event RewardDistributed(uint256 indexed tokenId, address depositor, uint256 amount);
 
     constructor(address _nftContract, address _rewardToken) {
         nftContract = IERC721(_nftContract);
@@ -47,8 +43,7 @@ contract TrioNFTStaking is IERC721Receiver {
             revert OnlyDepositorCanWithdraw();
         }
 
-        uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) *
-            REWARD_AMOUNT) / REWARD_DURATION;
+        uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) * REWARD_AMOUNT) / REWARD_DURATION;
 
         deposits[tokenId].timestamp = block.timestamp;
         rewardTokenContract.mint(msg.sender, rewardsAmount);
@@ -66,8 +61,7 @@ contract TrioNFTStaking is IERC721Receiver {
         emit NFTWithdrawn(tokenId, msg.sender);
 
         if (deposit.timestamp > 0) {
-            uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) *
-                REWARD_AMOUNT) / REWARD_DURATION;
+            uint256 rewardsAmount = ((block.timestamp - deposit.timestamp) * REWARD_AMOUNT) / REWARD_DURATION;
             if (rewardsAmount > 0) {
                 rewardTokenContract.mint(deposit.user, rewardsAmount);
                 emit RewardDistributed(tokenId, deposit.user, rewardsAmount);
@@ -75,20 +69,12 @@ contract TrioNFTStaking is IERC721Receiver {
         }
     }
 
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata
-    ) external returns (bytes4) {
+    function onERC721Received(address, address from, uint256 tokenId, bytes calldata) external returns (bytes4) {
         if (msg.sender != address(nftContract)) {
             revert OnlyNFTContractCanDeposit();
         }
 
-        deposits[tokenId] = DepositEntry({
-            user: from,
-            timestamp: block.timestamp
-        });
+        deposits[tokenId] = DepositEntry({user: from, timestamp: block.timestamp});
 
         return this.onERC721Received.selector;
     }

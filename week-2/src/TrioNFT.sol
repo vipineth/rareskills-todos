@@ -42,12 +42,8 @@ contract TrioNFT is ERC721, ERC2981, Ownable {
         _mint(msg.sender, _currentSupply);
     }
 
-    function mintWithDiscount(
-        bytes32[] memory proofs,
-        uint256 index
-    ) public payable {
-        uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) /
-            100;
+    function mintWithDiscount(bytes32[] memory proofs, uint256 index) public payable {
+        uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) / 100;
 
         if (!_verifyProof(proofs, index)) {
             revert InvalidProof();
@@ -71,16 +67,13 @@ contract TrioNFT is ERC721, ERC2981, Ownable {
     }
 
     function withdrawFunds(address to) public onlyOwner {
-        (bool success, ) = payable(to).call{value: address(this).balance}("");
+        (bool success,) = payable(to).call{value: address(this).balance}("");
         if (!success) {
             revert WithdrawFailed();
         }
     }
 
-    function _verifyProof(
-        bytes32[] memory proofs,
-        uint256 index
-    ) private view returns (bool) {
+    function _verifyProof(bytes32[] memory proofs, uint256 index) private view returns (bool) {
         bytes32 leaf = keccak256(abi.encode(msg.sender, index));
         return MerkleProof.verify(proofs, _merkleRoot, leaf);
     }
@@ -89,9 +82,7 @@ contract TrioNFT is ERC721, ERC2981, Ownable {
         return _discountedAddresses.get(tokenId);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(ERC721, ERC2981) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, ERC2981) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

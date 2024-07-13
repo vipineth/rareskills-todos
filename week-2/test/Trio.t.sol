@@ -114,7 +114,7 @@ contract TrioTest is Test {
         vm.startPrank(user1);
         trio.mint{value: mintPrice}();
         trio.safeTransferFrom(user1, address(nftStaking), tokenId);
-        (address depositor, ) = nftStaking.deposits(tokenId);
+        (address depositor,) = nftStaking.deposits(tokenId);
         assertEq(depositor, user1);
         vm.stopPrank();
     }
@@ -125,7 +125,7 @@ contract TrioTest is Test {
         trio.mint{value: trio.MINT_PRICE()}();
         trio.safeTransferFrom(user1, address(nftStaking), tokenId);
         nftStaking.withdrawNFT(tokenId);
-        (address depositor, ) = nftStaking.deposits(tokenId);
+        (address depositor,) = nftStaking.deposits(tokenId);
         assertEq(depositor, address(0));
         vm.stopPrank();
     }
@@ -160,10 +160,7 @@ contract TrioTest is Test {
 
         assertEq(rewardToken.owner(), newOwner);
 
-        TrioNFTStaking newNftStaking = new TrioNFTStaking(
-            address(trio),
-            address(rewardToken)
-        );
+        TrioNFTStaking newNftStaking = new TrioNFTStaking(address(trio), address(rewardToken));
 
         rewardToken.setNFTContract(address(newNftStaking));
         assertEq(address(rewardToken.nftContract()), address(newNftStaking));
