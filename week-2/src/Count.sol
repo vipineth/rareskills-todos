@@ -12,14 +12,16 @@ contract Count {
     }
 
     function count(address user) public view returns (uint256) {
-        uint256 balance = nftContract.balanceOf(user);
-        uint256[] memory primeTokenIds = new uint256[](balance);
-        for (uint256 i = 0; i < balance; i++) {
-            if (_isPrime(nftContract.tokenOfOwnerByIndex(user, i))) {
-                primeTokenIds[i] = nftContract.tokenOfOwnerByIndex(user, i);
+        unchecked {
+            uint256 primeCount = 0;
+            uint256 balance = nftContract.balanceOf(user);
+            for (uint256 i = 0; i < balance; i++) {
+                if (_isPrime(nftContract.tokenOfOwnerByIndex(user, i))) {
+                    primeCount++;
+                }
             }
+            return primeCount;
         }
-        return primeTokenIds.length;
     }
 
     function _isPrime(uint256 number) public pure returns (bool) {
