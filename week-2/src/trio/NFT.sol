@@ -7,6 +7,8 @@ import {BitMaps} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title NFT Contract
+/// @notice This contract implements an ERC721 NFT with minting and discount functionality, along with royalty support.
 contract NFT is ERC721, ERC2981, Ownable {
     using BitMaps for BitMaps.BitMap;
 
@@ -26,11 +28,15 @@ contract NFT is ERC721, ERC2981, Ownable {
     error InvalidProof();
     error WithdrawFailed();
 
+    /// @notice Constructor to initialize the NFT contract with a merkle root and set default royalty.
+    /// @param merkleRoot The merkle root for discount verification.
     constructor(bytes32 merkleRoot) ERC721("Trio", "TRO") Ownable(msg.sender) {
         _merkleRoot = merkleRoot;
         _setDefaultRoyalty(msg.sender, ROYALTY_FEE);
     }
 
+    /// @notice Mint a new NFT.
+    /// @dev Reverts if the mint price is not met or max supply is reached.
     function mint() public payable {
         if (msg.value < MINT_PRICE) {
             revert InsufficientBalance();
@@ -42,6 +48,10 @@ contract NFT is ERC721, ERC2981, Ownable {
         _mint(msg.sender, _currentSupply);
     }
 
+    /// @notice Mint a new NFT with a discount.
+    /// @param proofs The merkle proof for discount verification.
+    /// @param index The index in the merkle tree.
+    /// @dev Reverts if the proof is invalid, already claimed, insufficient balance, or max supply is reached.
     function mintWithDiscount(bytes32[] memory proofs, uint256 index) public payable {
         uint256 discountedPrice = (MINT_PRICE * (100 - DISCOUNT_PERCENTAGE)) / 100;
 
@@ -66,6 +76,9 @@ contract NFT is ERC721, ERC2981, Ownable {
         _mint(msg.sender, _currentSupply);
     }
 
+    /// @notice Withdraw funds from the contract to a specified address.
+    /// @param to The address to send the withdrawn funds to.
+    /// @dev Only callable by the contract owner.
     function withdrawFunds(address to) public onlyOwner {
         (bool success,) = payable(to).call{value: address(this).balance}("");
         if (!success) {
@@ -73,15 +86,25 @@ contract NFT is ERC721, ERC2981, Ownable {
         }
     }
 
+    /// @notice Verify the merkle proof for discount eligibility.
+    /// @param proofs The merkle proof.
+    /// @param index The index in the merkle tree.
+    /// @return True if the proof is valid, false otherwise.
     function _verifyProof(bytes32[] memory proofs, uint256 index) private view returns (bool) {
         bytes32 leaf = keccak256(abi.encode(msg.sender, index));
         return MerkleProof.verify(proofs, _merkleRoot, leaf);
     }
 
+    /// @notice Check if an NFT has been claimed with a discount.
+    /// @param tokenId The token ID to check.
+    /// @return True if the NFT has been claimed, false otherwise.
     function isNftClaimed(uint256 tokenId) external view returns (bool) {
         return _discountedAddresses.get(tokenId);
     }
 
+    /// @notice Check if the contract supports a specific interface.
+    /// @param interfaceId The interface ID to check.
+    /// @return True if the interface is supported, false otherwise.
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, ERC2981) returns (bool) {
         return super.supportsInterface(interfaceId);
     }

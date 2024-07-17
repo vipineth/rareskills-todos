@@ -11,6 +11,11 @@ contract Count {
         nftContract = IERC721Enumerable(_nftContract);
     }
 
+    /**
+     * @notice Counts the number of prime numbered tokens owned by a user.
+     * @param user The address of the user whose tokens are to be counted.
+     * @return The number of prime numbered tokens owned by the user.
+     */
     function count(address user) public view returns (uint256) {
         unchecked {
             uint256 primeCount = 0;
@@ -24,6 +29,11 @@ contract Count {
         }
     }
 
+    /**
+     * @notice Checks if a given number is prime.
+     * @param number The number to be checked.
+     * @return True if the number is prime, false otherwise.
+     */
     function _isPrime(uint256 number) public pure returns (bool) {
         if (number <= 1) return false;
         if (number <= 3) return true;
