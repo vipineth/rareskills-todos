@@ -16,3 +16,6 @@
 [submodule "week-2/lib/murky"]
 	path = week-2/lib/murky
 	url = https://github.com/dmfxyz/murky
+[submodule "week-3/lib/solady"]
+	path = week-3/lib/solady
+	url = https://github.com/vectorized/solady
