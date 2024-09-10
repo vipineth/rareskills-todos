@@ -94,8 +94,7 @@ contract Pair is ERC20 {
       liquidity = FixedPointMathLib.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(0), MINIMUM_LIQUIDITY);
     } else {
-      // to get the amount of share to mint we can do (dx * t)/ x0 or (dy * t)/ y0
-      // here we will do the min of the both
+      // s = dx * totalSupply / reserve0 or dy * totalSupply / reserve1 (s is the liquidity)
       uint256 liquidity0 = (amount0 * _totalSupply) / _reserve0;
       uint256 liquidity1 = (amount1 * _totalSupply) / _reserve0;
       liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
@@ -122,6 +121,7 @@ contract Pair is ERC20 {
     uint256 liquidity = balanceOf(address(this));
 
     uint256 _totalSupply = totalSupply();
+    // dx = s * dx/x0 and dy = s * dy/y0 (s is the liquidity)
     amount0 = (liquidity * balance0) / _totalSupply;
     amount1 = (liquidity * balance1) / _totalSupply;
 
