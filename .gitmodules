@@ -19,3 +19,6 @@
 [submodule "week-3/lib/solady"]
 	path = week-3/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "week-3/lib/openzeppelin-contracts"]
+	path = week-3/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

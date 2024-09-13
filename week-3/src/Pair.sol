@@ -3,8 +3,9 @@ pragma solidity ^0.8.27;
 
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
 
-contract Pair is ERC20 {
+contract Pair is ERC20, ReentrancyGuard {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
 
@@ -74,12 +75,21 @@ contract Pair is ERC20 {
   function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
     // will calculate the twap time
     uint32 blockTimestamp = uint32(block.timestamp % 2 ** 32);
+    uint32 timeElapsed = blockTimestamp - blockTimestampLast;
+
+    if(timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+      unchecked {
+        price0CumulativeLast += uint(timeElapsed * FixedPointMathLib.divWad(_reserve1, _reserve0));
+        price1CumulativeLast += uint(timeElapsed * FixedPointMathLib.divWad(_reserve0, _reserve1));
+      }
+    }
+
     reserve0 = uint112(balance0);
     reserve1 = uint112(balance1);
     blockTimestampLast = blockTimestamp;
   }
 
-  function mint(address to) external returns (uint256 liquidity) {
+  function mint(address to) external nonReentrant returns (uint256 liquidity) {
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
 
     uint256 balance0 = ERC20(token0).balanceOf(address(this));
@@ -110,7 +120,7 @@ contract Pair is ERC20 {
     emit Mint(msg.sender, amount0, amount1);
   }
 
-  function burn(address to) external returns (uint256 amount0, uint256 amount1) {
+  function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
     address _token0 = token0;
     address _token1 = token1;
@@ -140,7 +150,7 @@ contract Pair is ERC20 {
     emit Burn(msg.sender, amount0, amount1, to);
   }
 
-  function swap(uint256 amount0Out, uint256 amount1Out, address to) external {
+  function swap(uint256 amount0Out, uint256 amount1Out, address to) external nonReentrant {
     if (amount0Out == 0 && amount1Out == 0) {
       revert InsufficientAmount();
     }
