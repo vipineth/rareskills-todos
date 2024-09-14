@@ -72,6 +72,25 @@ contract Pair is ERC20, ReentrancyGuard {
     token1 = _tokenB;
   }
 
+  // collect mint fee on mint and burn
+  function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
+    address feeTo = address(1);
+    feeOn = feeTo != address(0);
+    uint _kLast = kLast;
+    if(feeOn){
+      if(_kLast != 0) {
+        uint rootK = FixedPointMathLib.sqrt(uint(_reserve0) * _reserve1);
+        uint rootKLast = FixedPointMathLib.sqrt(_kLast);
+        if(rootK > rootKLast){
+          uint numerator = totalSupply() * (rootK - rootKLast); // S*(L2-L1)
+          uint denominator = 5 * rootK + rootKLast; // 5L2 + L1
+          uint mintFeeLiquidity = numerator / denominator;
+          if(mintFeeLiquidity > 0) _mint(feeTo, mintFeeLiquidity);
+        }
+      }
+    }
+  }
+
   function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
     // will calculate the twap time
     uint32 blockTimestamp = uint32(block.timestamp % 2 ** 32);
@@ -98,6 +117,7 @@ contract Pair is ERC20, ReentrancyGuard {
     uint256 amount0 = balance0 - _reserve0;
     uint256 amount1 = balance1 - _reserve1;
 
+    bool feeOn = _mintFee(_reserve0, _reserve1);
     uint256 _totalSupply = totalSupply();
 
     if (_totalSupply == 0) {
@@ -117,6 +137,9 @@ contract Pair is ERC20, ReentrancyGuard {
     _mint(to, liquidity);
 
     _update(balance0, balance1, _reserve0, _reserve1);
+    if(feeOn) {
+      kLast = _reserve0 * _reserve1;
+    }
     emit Mint(msg.sender, amount0, amount1);
   }
 
@@ -130,6 +153,7 @@ contract Pair is ERC20, ReentrancyGuard {
 
     uint256 liquidity = balanceOf(address(this));
 
+    bool feeOn = _mintFee(_reserve0, _reserve1);
     uint256 _totalSupply = totalSupply();
     // dx = s * dx/x0 and dy = s * dy/y0 (s is the liquidity)
     amount0 = (liquidity * balance0) / _totalSupply;
@@ -147,6 +171,9 @@ contract Pair is ERC20, ReentrancyGuard {
     balance1 = ERC20(_token1).balanceOf(address(this));
 
     _update(balance0, balance1, _reserve0, _reserve1);
+    if(feeOn) {
+      kLast = _reserve0 * _reserve1;
+    }
     emit Burn(msg.sender, amount0, amount1, to);
   }
 
@@ -193,5 +220,8 @@ contract Pair is ERC20, ReentrancyGuard {
     }
     _update(balance0, balance1, _reserve0, _reserve1);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+  }
+  function sync() external nonReentrant {
+    _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
   }
 }
