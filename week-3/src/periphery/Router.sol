@@ -13,5 +13,5 @@ contract Router {
     uint256 amountBMin,
     address to,
     uint256 deadline
-  ) external virtual override returns (uint256 amountA, uint256 amountB, uint256 liquidity) {}
+  ) external virtual returns (uint256 amountA, uint256 amountB, uint256 liquidity) {}
 }
