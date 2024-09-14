@@ -6,7 +6,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
 
 contract Pair is ERC20, ReentrancyGuard {
-  uint public constant MINIMUM_LIQUIDITY = 10 ** 3;
+  uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
 
   address public factory;
@@ -17,20 +17,20 @@ contract Pair is ERC20, ReentrancyGuard {
   uint112 private reserve1;
   uint32 private blockTimestampLast;
 
-  uint private price0CumulativeLast;
-  uint private price1CumulativeLast;
-  uint private kLast; // reserve0 * reserve1
+  uint256 private price0CumulativeLast;
+  uint256 private price1CumulativeLast;
+  uint256 private kLast; // reserve0 * reserve1
 
   event Swap(
     address indexed sender,
-    uint amount0In,
-    uint amount1In,
-    uint amount0Out,
-    uint amount1Out,
+    uint256 amount0In,
+    uint256 amount1In,
+    uint256 amount0Out,
+    uint256 amount1Out,
     address indexed to
   );
-  event Mint(address indexed to, uint amount0, uint amount1);
-  event Burn(address indexed sender, uint amount0, uint amount1, address indexed to);
+  event Mint(address indexed to, uint256 amount0, uint256 amount1);
+  event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
 
   error Unauthorized();
   error InsufficientAmount();
@@ -46,7 +46,7 @@ contract Pair is ERC20, ReentrancyGuard {
     _blockTimestampLast = blockTimestampLast;
   }
 
-  function _safeTransfer(address token, address to, uint amount) private {
+  function _safeTransfer(address token, address to, uint256 amount) private {
     (bool success, bytes memory data) = token.call(abi.encodeWithSelector(TRANSFER_SELECTOR, to, amount));
     // handling for tokens that doesn't return on transfer like USDT
     if (!success || (data.length != 0 && !abi.decode(data, (bool)))) {
@@ -76,32 +76,32 @@ contract Pair is ERC20, ReentrancyGuard {
   function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
     address feeTo = address(1); // change this when the factory is implemented
     feeOn = feeTo != address(0);
-    uint _kLast = kLast;
-    if(feeOn){
-      if(_kLast != 0) {
-        uint rootK = FixedPointMathLib.sqrt(uint(_reserve0) * _reserve1);
-        uint rootKLast = FixedPointMathLib.sqrt(_kLast);
-        if(rootK > rootKLast){
-          uint numerator = totalSupply() * (rootK - rootKLast); // S*(L2-L1)
-          uint denominator = 5 * rootK + rootKLast; // 5L2 + L1
-          uint mintFeeLiquidity = numerator / denominator;
-          if(mintFeeLiquidity > 0) _mint(feeTo, mintFeeLiquidity);
+    uint256 _kLast = kLast;
+    if (feeOn) {
+      if (_kLast != 0) {
+        uint256 rootK = FixedPointMathLib.sqrt(uint256(_reserve0) * _reserve1);
+        uint256 rootKLast = FixedPointMathLib.sqrt(_kLast);
+        if (rootK > rootKLast) {
+          uint256 numerator = totalSupply() * (rootK - rootKLast); // S*(L2-L1)
+          uint256 denominator = 5 * rootK + rootKLast; // 5L2 + L1
+          uint256 mintFeeLiquidity = numerator / denominator;
+          if (mintFeeLiquidity > 0) _mint(feeTo, mintFeeLiquidity);
         }
       }
-    } else if(_kLast != 0){
+    } else if (_kLast != 0) {
       kLast = 0;
     }
   }
 
-  function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+  function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
     // will calculate the twap time
     uint32 blockTimestamp = uint32(block.timestamp % 2 ** 32);
     uint32 timeElapsed = blockTimestamp - blockTimestampLast;
 
-    if(timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+    if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
       unchecked {
-        price0CumulativeLast += uint(timeElapsed * FixedPointMathLib.divWad(_reserve1, _reserve0));
-        price1CumulativeLast += uint(timeElapsed * FixedPointMathLib.divWad(_reserve0, _reserve1));
+        price0CumulativeLast += uint256(timeElapsed * FixedPointMathLib.divWad(_reserve1, _reserve0));
+        price1CumulativeLast += uint256(timeElapsed * FixedPointMathLib.divWad(_reserve0, _reserve1));
       }
     }
 
@@ -110,25 +110,25 @@ contract Pair is ERC20, ReentrancyGuard {
     blockTimestampLast = blockTimestamp;
   }
 
-  function mint(address to) external nonReentrant returns (uint liquidity) {
+  function mint(address to) external nonReentrant returns (uint256 liquidity) {
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
 
-    uint balance0 = ERC20(token0).balanceOf(address(this));
-    uint balance1 = ERC20(token1).balanceOf(address(this));
+    uint256 balance0 = ERC20(token0).balanceOf(address(this));
+    uint256 balance1 = ERC20(token1).balanceOf(address(this));
 
-    uint amount0 = balance0 - _reserve0;
-    uint amount1 = balance1 - _reserve1;
+    uint256 amount0 = balance0 - _reserve0;
+    uint256 amount1 = balance1 - _reserve1;
 
     bool feeOn = _mintFee(_reserve0, _reserve1);
-    uint _totalSupply = totalSupply();
+    uint256 _totalSupply = totalSupply();
 
     if (_totalSupply == 0) {
       liquidity = FixedPointMathLib.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
       _mint(address(0), MINIMUM_LIQUIDITY);
     } else {
       // s = dx * totalSupply / reserve0 or dy * totalSupply / reserve1 (s is the liquidity)
-      uint liquidity0 = (amount0 * _totalSupply) / _reserve0;
-      uint liquidity1 = (amount1 * _totalSupply) / _reserve0;
+      uint256 liquidity0 = (amount0 * _totalSupply) / _reserve0;
+      uint256 liquidity1 = (amount1 * _totalSupply) / _reserve0;
       liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
     }
 
@@ -139,24 +139,24 @@ contract Pair is ERC20, ReentrancyGuard {
     _mint(to, liquidity);
 
     _update(balance0, balance1, _reserve0, _reserve1);
-    if(feeOn) {
+    if (feeOn) {
       kLast = _reserve0 * _reserve1;
     }
     emit Mint(msg.sender, amount0, amount1);
   }
 
-  function burn(address to) external nonReentrant returns (uint amount0, uint amount1) {
+  function burn(address to) external nonReentrant returns (uint256 amount0, uint256 amount1) {
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
     address _token0 = token0;
     address _token1 = token1;
 
-    uint balance0 = ERC20(_token0).balanceOf(address(this));
-    uint balance1 = ERC20(_token1).balanceOf(address(this));
+    uint256 balance0 = ERC20(_token0).balanceOf(address(this));
+    uint256 balance1 = ERC20(_token1).balanceOf(address(this));
 
-    uint liquidity = balanceOf(address(this));
+    uint256 liquidity = balanceOf(address(this));
 
     bool feeOn = _mintFee(_reserve0, _reserve1);
-    uint _totalSupply = totalSupply();
+    uint256 _totalSupply = totalSupply();
     // dx = s * dx/x0 and dy = s * dy/y0 (s is the liquidity)
     amount0 = (liquidity * balance0) / _totalSupply;
     amount1 = (liquidity * balance1) / _totalSupply;
@@ -173,13 +173,13 @@ contract Pair is ERC20, ReentrancyGuard {
     balance1 = ERC20(_token1).balanceOf(address(this));
 
     _update(balance0, balance1, _reserve0, _reserve1);
-    if(feeOn) {
+    if (feeOn) {
       kLast = _reserve0 * _reserve1;
     }
     emit Burn(msg.sender, amount0, amount1, to);
   }
 
-  function swap(uint amount0Out, uint amount1Out, address to) external nonReentrant {
+  function swap(uint256 amount0Out, uint256 amount1Out, address to) external nonReentrant {
     if (amount0Out == 0 && amount1Out == 0) {
       revert InsufficientAmount();
     }
@@ -187,8 +187,8 @@ contract Pair is ERC20, ReentrancyGuard {
     if (amount0Out > _reserve0 || amount1Out > _reserve1) {
       revert InsufficientLiquidity();
     }
-    uint balance0;
-    uint balance1;
+    uint256 balance0;
+    uint256 balance1;
 
     {
       address _token0 = token0;
@@ -205,8 +205,8 @@ contract Pair is ERC20, ReentrancyGuard {
       balance1 = ERC20(token1).balanceOf(address(this));
     }
 
-    uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-    uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+    uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+    uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
 
     if (amount0In == 0 && amount1In == 0) {
       revert ZeroInputAmount();
@@ -214,8 +214,8 @@ contract Pair is ERC20, ReentrancyGuard {
     // swap dx for dy => make sure (x0 + dx*(1-fee))(y0 - dy) >= x0y0
     {
       // balance0 - fee(3%) => balance0 - (amount0In*3/1000)
-      uint balance0Adjusted = balance0 * 1000 - (amount0In * 3);
-      uint balance1Adjusted = balance1 * 1000 - (amount1In * 3);
+      uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 3);
+      uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 3);
       if (balance0Adjusted * balance1Adjusted < uint256(_reserve0) * _reserve1 * (1000 ** 2)) {
         revert InsufficientKValue();
       }
@@ -223,6 +223,7 @@ contract Pair is ERC20, ReentrancyGuard {
     _update(balance0, balance1, _reserve0, _reserve1);
     emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
   }
+
   function sync() external nonReentrant {
     _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
   }
