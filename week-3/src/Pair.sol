@@ -7,13 +7,13 @@ import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
 import {IERC3156FlashLender} from "@openzeppelin/interfaces/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "@openzeppelin/interfaces/IERC3156FlashBorrower.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {IPair} from "../interfaces/IPair.sol";
 
-contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
+contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
-  bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
   bytes32 private constant FLASH_LOAN_CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
-  address public factory;
+  address public immutable factory;
   address public token0;
   address public token1;
 
@@ -24,29 +24,6 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 private price0CumulativeLast;
   uint256 private price1CumulativeLast;
   uint256 private kLast; // reserve0 * reserve1
-
-  event Swap(
-    address indexed sender,
-    uint256 amount0In,
-    uint256 amount1In,
-    uint256 amount0Out,
-    uint256 amount1Out,
-    address indexed to
-  );
-  event Mint(address indexed to, uint256 amount0, uint256 amount1);
-  event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
-
-  error Unauthorized();
-  error InsufficientAmount();
-  error InsufficientLiquidity();
-  error InvalidToAddress();
-  error TransferFailed();
-  error ZeroAmount();
-  error InsufficientKValue();
-  error UnsupportedBorrowToken(address token);
-  error FlashloanCallbackFailed();
-  error FlashloanInvalidAmount();
-  error FlashloanRepayFailed();
 
   function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
     _reserve0 = reserve0;
@@ -133,7 +110,7 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     }
 
     if (liquidity == 0) {
-      revert InsufficientLiquidity();
+      revert ZeroLiquidity();
     }
 
     _mint(to, liquidity);
@@ -162,7 +139,7 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     amount1 = (liquidity * balance1) / _totalSupply;
 
     if (amount0 == 0 || amount1 == 0) {
-      revert InsufficientAmount();
+      revert ZeroAmount();
     }
 
     _burn(address(this), liquidity);
@@ -181,7 +158,7 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
 
   function swap(uint256 amount0Out, uint256 amount1Out, address to) external nonReentrant {
     if (amount0Out == 0 && amount1Out == 0) {
-      revert InsufficientAmount();
+      revert ZeroAmount();
     }
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
     if (amount0Out > _reserve0 || amount1Out > _reserve1) {
@@ -246,6 +223,7 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
 
   function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
     external
+    nonReentrant
     override
     returns (bool)
   {
@@ -268,6 +246,8 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     }
 
     _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+
+    emit FlashLoan(address(receiver), token, amount, fee, data);
 
     return true;
   }
