@@ -6,6 +6,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
 import {IERC3156FlashLender} from "openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
+import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 
 contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -52,14 +53,6 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
     _blockTimestampLast = blockTimestampLast;
-  }
-
-  function _safeTransfer(address token, address to, uint256 amount) private {
-    (bool success, bytes memory data) = token.call(abi.encodeWithSelector(TRANSFER_SELECTOR, to, amount));
-    // handling for tokens that doesn't return on transfer like USDT
-    if (!success || (data.length != 0 && !abi.decode(data, (bool)))) {
-      revert TransferFailed();
-    }
   }
 
   constructor() {
@@ -174,8 +167,8 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     }
 
     _burn(address(this), liquidity);
-    _safeTransfer(_token0, to, amount0);
-    _safeTransfer(_token1, to, amount1);
+    SafeTransferLib.safeTransfer(_token0, to, amount0);
+    SafeTransferLib.safeTransfer(_token1, to, amount1);
 
     balance0 = ERC20(_token0).balanceOf(address(this));
     balance1 = ERC20(_token1).balanceOf(address(this));
@@ -206,8 +199,8 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
         revert InvalidToAddress();
       }
 
-      if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out);
-      if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out);
+      if (amount0Out > 0) SafeTransferLib.safeTransfer(_token0, to, amount0Out);
+      if (amount1Out > 0) SafeTransferLib.safeTransfer(_token1, to, amount1Out);
 
       balance0 = ERC20(token0).balanceOf(address(this));
       balance1 = ERC20(token1).balanceOf(address(this));
@@ -263,13 +256,13 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     uint256 initialBalance = ERC20(token).balanceOf(address(this));
     uint256 fee = _getFlashFee(amount);
 
-    ERC20(token)._safeTransfer(address(receiver), amount);
+    SafeTransferLib.safeTransfer(token, address(receiver), amount);
 
     if(receiver.onFlashLoan(msg.sender, token, amount, fee, data) != FLASH_LOAN_CALLBACK_SUCCESS) {
       revert FlashloanCallbackFailed();
     }
 
-    ERC20(token)._safeTransferFrom(address(receiver), address(this), amount + fee);
+    SafeTransferLib.safeTransferFrom(token, address(receiver), address(this), amount + fee);
 
     if(ERC20(token).balanceOf(address(this)) < initialBalance + fee) {
       revert FlashloanRepayFailed();
