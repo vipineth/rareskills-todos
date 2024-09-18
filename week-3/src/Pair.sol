@@ -4,10 +4,13 @@ pragma solidity ^0.8.27;
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
+import {IERC3156FlashLender} from "openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
 
-contract Pair is ERC20, ReentrancyGuard {
+contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes("transfer(address,uint256)")));
+  bytes32 private constant FLASH_LOAN_CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
   address public factory;
   address public token0;
@@ -37,9 +40,12 @@ contract Pair is ERC20, ReentrancyGuard {
   error InsufficientLiquidity();
   error InvalidToAddress();
   error TransferFailed();
-  error ZeroInputAmount();
+  error ZeroAmount();
   error InsufficientKValue();
+  error UnsupportedBorrowToken(address indexed token);
+  error FlashloanCallbackFailed();
 
+  
   function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
@@ -209,7 +215,7 @@ contract Pair is ERC20, ReentrancyGuard {
     uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
 
     if (amount0In == 0 && amount1In == 0) {
-      revert ZeroInputAmount();
+      revert ZeroAmount();
     }
     // swap dx for dy => make sure (x0 + dx*(1-fee))(y0 - dy) >= x0y0
     {
@@ -226,5 +232,45 @@ contract Pair is ERC20, ReentrancyGuard {
 
   function sync() external nonReentrant {
     _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+  }
+
+  // flash loan implementation
+
+  function _getFlashFee(uint256 amount) internal pure returns (uint256) {
+    return (amount * 3) / 1000;
+  }
+
+  function maxFlashLoan(address token) external view override returns (uint256) {
+    if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
+    return ERC20(token).balanceOf(address(this));
+  }
+
+  function flashFee(address token, uint256 amount) external view override returns (uint256) {
+    if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
+    return _getFlashFee(amount);
+  }
+
+  function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
+    external
+    override
+    returns (bool)
+  {
+    if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
+    if (amount == 0) revert ZeroAmount();
+    uint initialBalance = ERC20(token).balanceOf(address(this));
+    uint fee = _getFlashFee(amount);
+    ERC20(token)._safeTransfer(address(receiver), amount);
+
+    if(receiver.onFlashLoan(msg.sender, token, amount, fee, data) != FLASH_LOAN_CALLBACK_SUCCESS) {
+      revert FlashloanCallbackFailed();
+    }
+
+    ERC20(token)._safeTransferFrom(address(receiver), address(this), amount + fee);
+
+    assert(ERC20(token).balanceOf(address(this)) >= initialBalance + fee);
+
+    _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+
+    return true;
   }
 }
