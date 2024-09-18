@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@solady/tokens/ERC20.sol";
+
 
 /// @title IPair Interface
 /// @notice Interface for the Pair contract in a decentralized exchange
-interface IPair is IERC20 {
+interface IPair is ERC20 {
   /// @notice Thrown when an unauthorized address attempts to initialize
   error Unauthorized();
 
