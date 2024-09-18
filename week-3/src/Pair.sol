@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import {ERC20} from "solady/tokens/ERC20.sol";
-import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
-import {ReentrancyGuard} from "solady/utils/ReentrancyGuard.sol";
-import {IERC3156FlashLender} from "openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
-import {IERC3156FlashBorrower} from "openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
-import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
+import {ERC20} from "@solady/tokens/ERC20.sol";
+import {FixedPointMathLib} from "@solady/utils/FixedPointMathLib.sol";
+import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
+import {IERC3156FlashLender} from "@openzeppelin/interfaces/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "@openzeppelin/interfaces/IERC3156FlashBorrower.sol";
+import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 
 contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -47,7 +47,6 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   error FlashloanCallbackFailed();
   error FlashloanInvalidAmount();
   error FlashloanRepayFailed();
-
 
   function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
     _reserve0 = reserve0;
@@ -251,20 +250,20 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     returns (bool)
   {
     if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
-    if (amount == 0 ||  amount > maxFlashLoan(token)) revert FlashloanInvalidAmount();
+    if (amount == 0 || amount > maxFlashLoan(token)) revert FlashloanInvalidAmount();
 
     uint256 initialBalance = ERC20(token).balanceOf(address(this));
     uint256 fee = _getFlashFee(amount);
 
     SafeTransferLib.safeTransfer(token, address(receiver), amount);
 
-    if(receiver.onFlashLoan(msg.sender, token, amount, fee, data) != FLASH_LOAN_CALLBACK_SUCCESS) {
+    if (receiver.onFlashLoan(msg.sender, token, amount, fee, data) != FLASH_LOAN_CALLBACK_SUCCESS) {
       revert FlashloanCallbackFailed();
     }
 
     SafeTransferLib.safeTransferFrom(token, address(receiver), address(this), amount + fee);
 
-    if(ERC20(token).balanceOf(address(this)) < initialBalance + fee) {
+    if (ERC20(token).balanceOf(address(this)) < initialBalance + fee) {
       revert FlashloanRepayFailed();
     }
 
