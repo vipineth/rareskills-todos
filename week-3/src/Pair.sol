@@ -223,8 +223,8 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
 
   function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
     external
-    nonReentrant
     override
+    nonReentrant
     returns (bool)
   {
     if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);

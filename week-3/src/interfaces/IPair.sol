@@ -74,12 +74,32 @@ interface IPair is IERC20 {
   /// @param data Additional data passed to the flash loan
   event FlashLoan(address indexed receiver, address token, uint256 amount, uint256 fee, bytes data);
 
+  /// @notice The minimum liquidity required
+  function MINIMUM_LIQUIDITY() external pure returns (uint256);
+
+  /// @notice The factory address that created this pair
+  function factory() external view returns (address);
+
+  /// @notice The address of the first token in the pair
+  function token0() external view returns (address);
+
+  /// @notice The address of the second token in the pair
+  function token1() external view returns (address);
+
+  /// @notice The cumulative price of token0, used for TWAP calculations
+  function price0CumulativeLast() external view returns (uint256);
+
+  /// @notice The cumulative price of token1, used for TWAP calculations
+  function price1CumulativeLast() external view returns (uint256);
+
+  /// @notice The product of the reserves, used for collecting fees
+  function kLast() external view returns (uint256);
+
   /// @notice Initializes the pair with two tokens
   /// @param tokenA The address of the first token
   /// @param tokenB The address of the second token
   function initialize(address tokenA, address tokenB) external;
 
-  // Liquidity Management
   /// @notice Mints liquidity tokens
   /// @param to The address to receive the minted liquidity tokens
   /// @return liquidity The amount of liquidity tokens minted
