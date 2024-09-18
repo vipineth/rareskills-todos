@@ -42,10 +42,12 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
   error TransferFailed();
   error ZeroAmount();
   error InsufficientKValue();
-  error UnsupportedBorrowToken(address indexed token);
+  error UnsupportedBorrowToken(address token);
   error FlashloanCallbackFailed();
+  error FlashloanInvalidAmount();
+  error FlashloanRepayFailed();
 
-  
+
   function getReserves() public view returns (uint112 _reserve0, uint112 _reserve1, uint32 _blockTimestampLast) {
     _reserve0 = reserve0;
     _reserve1 = reserve1;
@@ -256,9 +258,11 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
     returns (bool)
   {
     if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
-    if (amount == 0) revert ZeroAmount();
-    uint initialBalance = ERC20(token).balanceOf(address(this));
-    uint fee = _getFlashFee(amount);
+    if (amount == 0 ||  amount > maxFlashLoan(token)) revert FlashloanInvalidAmount();
+
+    uint256 initialBalance = ERC20(token).balanceOf(address(this));
+    uint256 fee = _getFlashFee(amount);
+
     ERC20(token)._safeTransfer(address(receiver), amount);
 
     if(receiver.onFlashLoan(msg.sender, token, amount, fee, data) != FLASH_LOAN_CALLBACK_SUCCESS) {
@@ -267,7 +271,9 @@ contract Pair is ERC20, ReentrancyGuard, IERC3156FlashLender {
 
     ERC20(token)._safeTransferFrom(address(receiver), address(this), amount + fee);
 
-    assert(ERC20(token).balanceOf(address(this)) >= initialBalance + fee);
+    if(ERC20(token).balanceOf(address(this)) < initialBalance + fee) {
+      revert FlashloanRepayFailed();
+    }
 
     _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
 
