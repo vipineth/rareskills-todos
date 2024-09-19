@@ -12,6 +12,7 @@ import {IPair} from "../interfaces/IPair.sol";
 contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes32 private constant FLASH_LOAN_CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
+
   using ERC20 for IERC20;
 
   address public immutable factory;

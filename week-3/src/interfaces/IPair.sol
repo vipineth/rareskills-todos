@@ -3,7 +3,6 @@ pragma solidity ^0.8.27;
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
 
-
 /// @title IPair Interface
 /// @notice Interface for the Pair contract in a decentralized exchange
 interface IPair is ERC20 {
