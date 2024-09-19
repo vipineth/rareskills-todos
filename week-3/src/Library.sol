@@ -16,6 +16,8 @@ contract Library {
   error IdenticalToken();
   /// @notice Thrown when a zero address is provided where a valid address is required
   error ZeroAddress();
+  /// @notice Thrown when a zero amount is provided
+  error ZeroAmount();
   /// @notice Thrown when the provided path length is invalid
   error InvalidPathLength();
 
@@ -66,8 +68,8 @@ contract Library {
     view
     returns (uint256 reserveA, uint256 reserveB)
   {
-    (address token0, address token1) = sortTokens(tokenA, tokenB);
-    (uint256 reserve0, uint256 reserve1) = IPair(pairFor(factory, tokenA, tokenB)).getReserves();
+    (address token0,) = sortTokens(tokenA, tokenB);
+    (uint256 reserve0, uint256 reserve1,) = IPair(pairFor(factory, tokenA, tokenB)).getReserves();
     (reserveA, reserveB) = token0 == tokenA ? (reserve0, reserve1) : (reserve1, reserve0);
   }
 
@@ -76,7 +78,7 @@ contract Library {
   /// @param reserveA The reserve of tokenA
   /// @param reserveB The reserve of tokenB
   /// @return amountB The equivalent amount of tokenB
-  function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal view returns (uint256 amountB) {
+  function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
     if (amountA == 0) revert ZeroAmount();
     if (reserveA == 0 || reserveB == 0) revert InsufficientLiquidity();
     amountB = (amountA * reserveB) / reserveA;
@@ -133,48 +135,48 @@ contract Library {
     // Round up the amountIn to ensure sufficient input
     amountIn = (numerator / denominator) + 1;
   }
-}
+  /// @notice Calculates the amounts out for a given input amount along a path of token pairs
+  /// @param factory The address of the factory contract
+  /// @param amountIn The input amount
+  /// @param path An array of token addresses representing the path
+  /// @return amounts An array of amounts out for each step in the path
 
-/// @notice Calculates the amounts out for a given input amount along a path of token pairs
-/// @param factory The address of the factory contract
-/// @param amountIn The input amount
-/// @param path An array of token addresses representing the path
-/// @return amounts An array of amounts out for each step in the path
-function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
-  internal
-  view
-  returns (uint256[] memory amounts)
-{
-  uint256 pathLength = path.length;
+  function getAmountsOut(address factory, uint256 amountIn, address[] calldata path)
+    internal
+    view
+    returns (uint256[] memory amounts)
+  {
+    uint256 pathLength = path.length;
 
-  if (pathLength < 2) revert InvalidPathLength();
+    if (pathLength < 2) revert InvalidPathLength();
 
-  amounts = new uint256[](path.length);
-  amounts[0] = amountIn;
-  for (uint256 i; i < pathLength - 1; i++) {
-    (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
-    amounts[i + 1] = getAmountOut(amountIn, reserveIn, reserveOut);
+    amounts = new uint256[](path.length);
+    amounts[0] = amountIn;
+    for (uint256 i; i < pathLength - 1; i++) {
+      (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
+      amounts[i + 1] = getAmountOut(amountIn, reserveIn, reserveOut);
+    }
   }
-}
 
-/// @notice Calculates the amounts in required for a desired output amount along a path of token pairs
-/// @param factory The address of the factory contract
-/// @param amountOut The desired output amount
-/// @param path An array of token addresses representing the path
-/// @return amounts An array of amounts in required for each step in the path
-function getAmountsIn(address factory, uint256 amountOut, address calldata path)
-  internal
-  view
-  returns (uint256[] memory amounts)
-{
-  uint256 pathLength = path.length;
+  /// @notice Calculates the amounts in required for a desired output amount along a path of token pairs
+  /// @param factory The address of the factory contract
+  /// @param amountOut The desired output amount
+  /// @param path An array of token addresses representing the path
+  /// @return amounts An array of amounts in required for each step in the path
+  function getAmountsIn(address factory, uint256 amountOut, address[] calldata path)
+    internal
+    view
+    returns (uint256[] memory amounts)
+  {
+    uint256 pathLength = path.length;
 
-  if (pathLength < 2) revert InvalidPathLength();
+    if (pathLength < 2) revert InvalidPathLength();
 
-  amounts = new uint256[](path.length);
-  amounts[pathLength - 1] = amountOut;
-  for (uint256 i = pathLength - 1; i > 0; i--) {
-    (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
-    amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+    amounts = new uint256[](path.length);
+    amounts[pathLength - 1] = amountOut;
+    for (uint256 i = pathLength - 1; i > 0; i--) {
+      (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
+      amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+    }
   }
 }
