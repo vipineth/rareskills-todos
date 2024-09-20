@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import {IERC3156FlashBorrower} from "@openzeppelin/interfaces/IERC3156FlashBorrower.sol";
-
 /// @title IPair Interface
 /// @notice Interface for the Pair contract in a decentralized exchange
 interface IPair {
@@ -74,34 +72,10 @@ interface IPair {
   /// @param data Additional data passed to the flash loan
   event FlashLoan(address indexed receiver, address token, uint256 amount, uint256 fee, bytes data);
 
-  /// @notice Initializes the pair with two tokens
-  /// @param tokenA The address of the first token
-  /// @param tokenB The address of the second token
   function initialize(address tokenA, address tokenB) external;
-
-  /// @notice Mints liquidity tokens
-  /// @param to The address to receive the minted liquidity tokens
-  /// @return liquidity The amount of liquidity tokens minted
   function mint(address to) external returns (uint256 liquidity);
-
-  /// @notice Burns liquidity tokens
-  /// @param to The address to receive the underlying assets
-  /// @return amount0 The amount of token0 sent to the recipient
-  /// @return amount1 The amount of token1 sent to the recipient
   function burn(address to) external returns (uint256 amount0, uint256 amount1);
-
-  /// @notice Swaps tokens
-  /// @param amount0Out The amount of token0 to receive
-  /// @param amount1Out The amount of token1 to receive
-  /// @param to The recipient of the swap
   function swap(uint256 amount0Out, uint256 amount1Out, address to) external;
-
-  /// @notice Syncs the current balances to the reserves
   function sync() external;
-
-  /// @notice Returns the current reserves and the last block timestamp
-  /// @return reserve0 The current reserve of token0
-  /// @return reserve1 The current reserve of token1
-  /// @return blockTimestampLast The timestamp of the last block in which an interaction occurred
   function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
 }

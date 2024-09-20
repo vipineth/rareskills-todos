@@ -5,6 +5,7 @@ import {Library} from "./Library.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {IPair} from "./interfaces/IPair.sol";
 import {Factory} from "./Factory.sol";
+import {IWETH} from "./interfaces/IWETH.sol";
 
 contract Router {
   address public immutable factory;
@@ -44,7 +45,9 @@ contract Router {
     uint256 deadline
   ) external ensure(deadline) returns (uint256[] memory amounts) {
     amounts = Library.getAmountsOut(factory, amountIn, path);
-    if (amounts[amounts.length - 1] < amountOutMin) revert InsufficientOutputAmount();
+    if (amounts[amounts.length - 1] < amountOutMin) {
+      revert InsufficientOutputAmount();
+    }
 
     SafeTransferLib.safeTransferFrom(path[0], msg.sender, Library.pairFor(factory, path[0], path[1]), amounts[0]);
     _swap(amounts, path, to);
@@ -88,6 +91,42 @@ contract Router {
         if (amountAOptimal < amountAMin) revert InsufficientAmount();
         (amountA, amountB) = (amountAOptimal, amountBDesired);
       }
+    }
+  }
+
+  function addLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 amountADesired,
+    uint256 amountBDesired,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    address to,
+    uint256 deadline
+  ) external ensure(deadline) returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
+    (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
+    address pair = Library.pairFor(factory, tokenA, tokenB);
+    SafeTransferLib.safeTransferFrom(tokenA, msg.sender, pair, amountA);
+    SafeTransferLib.safeTransferFrom(tokenB, msg.sender, pair, amountB);
+    liquidity = IPair(pair).mint(to);
+  }
+
+  function addLiquidityETH(
+    address token,
+    uint256 amountTokenDesired,
+    uint256 amountTokenMin,
+    uint256 amountETHMin,
+    address to,
+    uint256 deadline
+  ) external payable ensure(deadline) returns (uint256 amountToken, uint256 amountETH, uint256 liquidity) {
+    (amountToken, amountETH) = _addLiquidity(token, WETH, amountTokenDesired, msg.value, amountTokenMin, amountETHMin);
+    address pair = Library.pairFor(factory, token, WETH);
+    SafeTransferLib.safeTransferFrom(token, msg.sender, pair, amountToken);
+    IWETH(WETH).deposit{value: amountETH}();
+    assert(IWETH(WETH).transfer(pair, amountETH));
+    liquidity = IPair(pair).mint(to);
+    if (msg.value > amountETH) {
+      SafeTransferLib.safeTransferETH(msg.sender, msg.value - amountETH);
     }
   }
 }
