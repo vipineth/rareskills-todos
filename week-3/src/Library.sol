@@ -7,7 +7,7 @@ import {IPair} from "./interfaces/IPair.sol";
 /// @title Library for AMM operations
 /// @notice Provides utility functions for token swaps and liquidity calculations
 /// @dev This contract is meant to be used as a library and should not be deployed independently
-contract Library {
+library Library {
   /// @notice Thrown when the input amount is insufficient for the operation
   error InsufficientInputAmount();
   /// @notice Thrown when there's not enough liquidity for the operation
