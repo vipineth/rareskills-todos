@@ -15,7 +15,7 @@ contract Factory is Pair {
   error IdenticalAddresses(address _token0, address _token1);
   error ZeroAddress();
   error ExistingPair();
-  error Unauthorized();
+  error UnauthorizedAccess();
 
   constructor(address _feeToSetter) {
     feeToSetter = _feeToSetter;
@@ -49,12 +49,12 @@ contract Factory is Pair {
   }
 
   function setFeeTo(address _feeTo) external {
-    if (msg.sender != feeToSetter) revert Unauthorized();
+    if (msg.sender != feeToSetter) revert UnauthorizedAccess();
     feeTo = _feeTo;
   }
 
   function setFeeToSetter(address _feeToSetter) external {
-    if (msg.sender != feeToSetter) revert Unauthorized();
+    if (msg.sender != feeToSetter) revert UnauthorizedAccess();
     feeToSetter = _feeToSetter;
   }
 }
