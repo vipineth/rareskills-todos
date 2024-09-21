@@ -4,8 +4,10 @@ pragma solidity ^0.8.27;
 import {Library} from "./Library.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {IPair} from "./interfaces/IPair.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {Factory} from "./Factory.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
+import {IERC20Permit} from "@openzeppelin/token/ERC20/extensions/IERC20Permit.sol";
 
 contract Router {
   address public immutable factory;
@@ -129,4 +131,70 @@ contract Router {
       SafeTransferLib.safeTransferETH(msg.sender, msg.value - amountETH);
     }
   }
+
+  function removeLiquidity(
+    address tokenA,
+    address tokenB,
+    uint256 liquidity,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    address to,
+    uint256 deadline
+  ) public ensure(deadline) returns (uint256 amountA, uint256 amountB) {
+    address pair = Library.pairFor(factory, tokenA, tokenB);
+    IERC20(pair).transferFrom(msg.sender, pair, liquidity);
+    (uint256 amount0, uint256 amount1) = IPair(pair).burn(to);
+    (address token0,) = Library.sortTokens(tokenA, tokenB);
+    (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
+    if (amountA < amountAMin) revert InsufficientAmount();
+    if (amountB < amountBMin) revert InsufficientAmount();
+  }
+
+  function removeLiquidityETH(
+    address token,
+    uint256 liquidity,
+    uint256 amountTokenMin,
+    uint256 amountETHMin,
+    address to,
+    uint256 deadline
+  ) public ensure(deadline) returns (uint256 amountToken, uint256 amountETH) {
+    // to: is set to address(this) so the router can unwrap the WETH and sent to the user
+    (amountToken, amountETH) =
+      removeLiquidity(token, WETH, liquidity, amountTokenMin, amountETHMin, address(this), deadline);
+    SafeTransferLib.safeTransfer(token, to, amountToken);
+    IWETH(WETH).withdraw(amountETH);
+    SafeTransferLib.safeTransferETH(to, amountETH);
+  }
+
+     function removeLiquidityWithPermit(
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountA, uint amountB) {
+        address pair = Library.pairFor(factory, tokenA, tokenB);
+        uint value = approveMax ? type(uint256).max : liquidity;
+        IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
+    }
+
+    function removeLiquidityETHWithPermit(
+        address token,
+        uint liquidity,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline,
+        bool approveMax, uint8 v, bytes32 r, bytes32 s
+    ) external returns (uint amountToken, uint amountETH) {
+        address pair = Library.pairFor(factory, token, WETH);
+        uint value = approveMax ? type(uint256).max : liquidity;
+        IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
+    }
+
 }

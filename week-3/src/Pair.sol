@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
+import {ERC20Permit} from "@openzeppelin/token/ERC20/extensions/ERC20Permit.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
 import {FixedPointMathLib} from "@solady/utils/FixedPointMathLib.sol";
 import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
@@ -9,7 +11,7 @@ import {IERC3156FlashBorrower} from "@openzeppelin/interfaces/IERC3156FlashBorro
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {IPair} from "./interfaces/IPair.sol";
 
-contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
+contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes32 private constant FLASH_LOAN_CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
 
@@ -31,7 +33,7 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
     _blockTimestampLast = blockTimestampLast;
   }
 
-  constructor() ERC20("Swap LP", "SLP") {
+  constructor() ERC20("Swap LP", "SLP") ERC20Permit("Swap LP") {
     factory = msg.sender;
   }
 
@@ -82,8 +84,8 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
   function mint(address to) external nonReentrant returns (uint256 liquidity) {
     (uint112 _reserve0, uint112 _reserve1,) = getReserves();
 
-    uint256 balance0 = ERC20(token0).balanceOf(address(this));
-    uint256 balance1 = ERC20(token1).balanceOf(address(this));
+    uint256 balance0 = IERC20(token0).balanceOf(address(this));
+    uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
     uint256 amount0 = balance0 - _reserve0;
     uint256 amount1 = balance1 - _reserve1;
@@ -119,8 +121,8 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
     address _token0 = token0;
     address _token1 = token1;
 
-    uint256 balance0 = ERC20(_token0).balanceOf(address(this));
-    uint256 balance1 = ERC20(_token1).balanceOf(address(this));
+    uint256 balance0 = IERC20(_token0).balanceOf(address(this));
+    uint256 balance1 = IERC20(_token1).balanceOf(address(this));
 
     uint256 liquidity = balanceOf(address(this));
 
@@ -138,8 +140,8 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
     SafeTransferLib.safeTransfer(_token0, to, amount0);
     SafeTransferLib.safeTransfer(_token1, to, amount1);
 
-    balance0 = ERC20(_token0).balanceOf(address(this));
-    balance1 = ERC20(_token1).balanceOf(address(this));
+    balance0 = IERC20(_token0).balanceOf(address(this));
+    balance1 = IERC20(_token1).balanceOf(address(this));
 
     _update(balance0, balance1, _reserve0, _reserve1);
     if (feeOn) {
@@ -170,8 +172,8 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
       if (amount0Out > 0) SafeTransferLib.safeTransfer(_token0, to, amount0Out);
       if (amount1Out > 0) SafeTransferLib.safeTransfer(_token1, to, amount1Out);
 
-      balance0 = ERC20(token0).balanceOf(address(this));
-      balance1 = ERC20(token1).balanceOf(address(this));
+      balance0 = IERC20(token0).balanceOf(address(this));
+      balance1 = IERC20(token1).balanceOf(address(this));
     }
 
     uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
@@ -194,7 +196,7 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
   }
 
   function sync() external nonReentrant {
-    _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+    _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
   }
 
   // flash loan implementation
@@ -205,7 +207,7 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
 
   function maxFlashLoan(address token) external view override returns (uint256) {
     if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
-    return ERC20(token).balanceOf(address(this));
+    return IERC20(token).balanceOf(address(this));
   }
 
   function flashFee(address token, uint256 amount) external view override returns (uint256) {
@@ -222,7 +224,7 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
     if (token != token0 && token != token1) revert UnsupportedBorrowToken(token);
     if (amount == 0) revert FlashloanInvalidAmount();
 
-    uint256 initialBalance = ERC20(token).balanceOf(address(this));
+    uint256 initialBalance = IERC20(token).balanceOf(address(this));
     uint256 fee = _getFlashFee(amount);
 
     SafeTransferLib.safeTransfer(token, address(receiver), amount);
@@ -233,11 +235,11 @@ contract Pair is IPair, ERC20, ReentrancyGuard, IERC3156FlashLender {
 
     SafeTransferLib.safeTransferFrom(token, address(receiver), address(this), amount + fee);
 
-    if (ERC20(token).balanceOf(address(this)) < initialBalance + fee) {
+    if (IERC20(token).balanceOf(address(this)) < initialBalance + fee) {
       revert FlashloanRepayFailed();
     }
 
-    _update(ERC20(token0).balanceOf(address(this)), ERC20(token1).balanceOf(address(this)), reserve0, reserve1);
+    _update(IERC20(token0).balanceOf(address(this)), IERC20(token1).balanceOf(address(this)), reserve0, reserve1);
 
     emit FlashLoan(address(receiver), token, amount, fee, data);
 
