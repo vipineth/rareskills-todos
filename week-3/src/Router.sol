@@ -5,7 +5,7 @@ import {Library} from "./Library.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {IPair} from "./interfaces/IPair.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
-import {Factory} from "./Factory.sol";
+import {IFactory} from "./interfaces/IFactory.sol";
 import {IWETH} from "./interfaces/IWETH.sol";
 import {IERC20Permit} from "@openzeppelin/token/ERC20/extensions/IERC20Permit.sol";
 
@@ -76,8 +76,8 @@ contract Router {
     uint256 amountAMin,
     uint256 amountBMin
   ) private returns (uint256 amountA, uint256 amountB) {
-    if (Factory(factory).getPair(tokenA, tokenB) == address(0)) {
-      Factory(factory).createPair(tokenA, tokenB);
+    if (IFactory(factory).getPair(tokenA, tokenB) == address(0)) {
+      IFactory(factory).createPair(tokenA, tokenB);
     }
     (uint256 reserveA, uint256 reserveB) = Library.getReserves(factory, tokenA, tokenB);
     if (reserveA == 0 && reserveB == 0) {
