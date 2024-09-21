@@ -14,6 +14,8 @@ import {IPair} from "./interfaces/IPair.sol";
 contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
   bytes32 private constant FLASH_LOAN_CALLBACK_SUCCESS = keccak256("ERC3156FlashBorrower.onFlashLoan");
+  uint256 private constant BPS_DENOMINATOR = 10000;
+  uint256 private constant FEE_IN_BPS = 30; // 0.3% fee = 30 BPS
 
   address public immutable factory;
   address public token0;
@@ -128,6 +130,11 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
 
     bool feeOn = _mintFee(_reserve0, _reserve1);
     uint256 _totalSupply = totalSupply();
+
+    if (_totalSupply - liquidity < MINIMUM_LIQUIDITY) {
+      revert BurnExceedsAllowedLiquidity();
+    }
+
     // dx = s * dx/x0 and dy = s * dy/y0 (s is the liquidity)
     amount0 = (liquidity * balance0) / _totalSupply;
     amount1 = (liquidity * balance1) / _totalSupply;
@@ -185,8 +192,8 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
     // swap dx for dy => make sure (x0 + dx*(1-fee))(y0 - dy) >= x0y0
     {
       // balance0 - fee(3%) => balance0 - (amount0In*3/1000)
-      uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 3);
-      uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 3);
+      uint256 balance0Adjusted = balance0 * BPS_DENOMINATOR - (amount0In * FEE_IN_BPS);
+      uint256 balance1Adjusted = balance1 * BPS_DENOMINATOR - (amount1In * FEE_IN_BPS);
       if (balance0Adjusted * balance1Adjusted < uint256(_reserve0) * _reserve1 * (1000 ** 2)) {
         revert InsufficientKValue();
       }

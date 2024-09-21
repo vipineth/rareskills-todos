@@ -166,35 +166,40 @@ contract Router {
     SafeTransferLib.safeTransferETH(to, amountETH);
   }
 
-     function removeLiquidityWithPermit(
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns (uint amountA, uint amountB) {
-        address pair = Library.pairFor(factory, tokenA, tokenB);
-        uint value = approveMax ? type(uint256).max : liquidity;
-        IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-        (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
-    }
+  function removeLiquidityWithPermit(
+    address tokenA,
+    address tokenB,
+    uint256 liquidity,
+    uint256 amountAMin,
+    uint256 amountBMin,
+    address to,
+    uint256 deadline,
+    bool approveMax,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external returns (uint256 amountA, uint256 amountB) {
+    address pair = Library.pairFor(factory, tokenA, tokenB);
+    uint256 value = approveMax ? type(uint256).max : liquidity;
+    IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+    (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
+  }
 
-    function removeLiquidityETHWithPermit(
-        address token,
-        uint liquidity,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline,
-        bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns (uint amountToken, uint amountETH) {
-        address pair = Library.pairFor(factory, token, WETH);
-        uint value = approveMax ? type(uint256).max : liquidity;
-        IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-        (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
-    }
-
+  function removeLiquidityETHWithPermit(
+    address token,
+    uint256 liquidity,
+    uint256 amountTokenMin,
+    uint256 amountETHMin,
+    address to,
+    uint256 deadline,
+    bool approveMax,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external returns (uint256 amountToken, uint256 amountETH) {
+    address pair = Library.pairFor(factory, token, WETH);
+    uint256 value = approveMax ? type(uint256).max : liquidity;
+    IERC20Permit(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+    (amountToken, amountETH) = removeLiquidityETH(token, liquidity, amountTokenMin, amountETHMin, to, deadline);
+  }
 }

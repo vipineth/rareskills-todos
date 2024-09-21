@@ -35,6 +35,9 @@ interface IPair {
   /// @notice Thrown when the flash loan repayment fails
   error FlashloanRepayFailed();
 
+  /// @notice Thrown when an attempt to burn liquidity would result in total supply falling below MINIMUM_LIQUIDITY
+  error BurnExceedsAllowedLiquidity();
+
   /// @notice Emitted when a swap occurs
   /// @param sender The address initiating the swap
   /// @param amount0In The amount of token0 input
