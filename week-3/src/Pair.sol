@@ -68,7 +68,7 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
 
   function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) private {
     // will calculate the twap time
-    uint32 blockTimestamp = uint32(block.timestamp % 2 ** 32);
+    uint32 blockTimestamp = uint32(block.timestamp);
     uint32 timeElapsed = blockTimestamp - blockTimestampLast;
 
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
