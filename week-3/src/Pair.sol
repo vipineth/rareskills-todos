@@ -10,6 +10,7 @@ import {IERC3156FlashLender} from "@openzeppelin/interfaces/IERC3156FlashLender.
 import {IERC3156FlashBorrower} from "@openzeppelin/interfaces/IERC3156FlashBorrower.sol";
 import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
 import {IPair} from "./interfaces/IPair.sol";
+import {console} from "forge-std/console.sol";
 
 contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair {
   uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -88,7 +89,6 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
 
     uint256 balance0 = IERC20(token0).balanceOf(address(this));
     uint256 balance1 = IERC20(token1).balanceOf(address(this));
-
     uint256 amount0 = balance0 - _reserve0;
     uint256 amount1 = balance1 - _reserve1;
 
@@ -97,23 +97,23 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
 
     if (_totalSupply == 0) {
       liquidity = FixedPointMathLib.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-      _mint(address(0), MINIMUM_LIQUIDITY);
+      _mint(address(1), MINIMUM_LIQUIDITY); // just to overwrite the oz ERC20 address(0) check
     } else {
       // s = dx * totalSupply / reserve0 or dy * totalSupply / reserve1 (s is the liquidity)
       uint256 liquidity0 = (amount0 * _totalSupply) / _reserve0;
-      uint256 liquidity1 = (amount1 * _totalSupply) / _reserve0;
+      uint256 liquidity1 = (amount1 * _totalSupply) / _reserve1;
       liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
     }
 
-    if (liquidity == 0) {
+    if (liquidity <= 0) {
       revert ZeroLiquidity();
     }
-
+    
     _mint(to, liquidity);
 
     _update(balance0, balance1, _reserve0, _reserve1);
     if (feeOn) {
-      kLast = _reserve0 * _reserve1;
+      kLast = uint256(_reserve0) * _reserve1;
     }
     emit Mint(msg.sender, amount0, amount1);
   }
@@ -152,7 +152,7 @@ contract Pair is ERC20, ERC20Permit, ReentrancyGuard, IERC3156FlashLender, IPair
 
     _update(balance0, balance1, _reserve0, _reserve1);
     if (feeOn) {
-      kLast = _reserve0 * _reserve1;
+      kLast = uint256(_reserve0) * _reserve1;
     }
     emit Burn(msg.sender, amount0, amount1, to);
   }
